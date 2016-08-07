@@ -1,6 +1,6 @@
 {
   "name": "envelope-signal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Envelope signal class",
   "main": "index.js",
   "scripts": {
@@ -10,5 +10,9 @@
   "license": "ISC",
   "dependencies": {
     "lerp": "1.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seymar/envelope-signal.git"
   }
 }
