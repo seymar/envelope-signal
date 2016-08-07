@@ -1,7 +1,18 @@
+var util = require('util');
+
 var BreakpointEnvelope = require('../index.js');
 
-var be1 = new BreakpointEnvelope();
-var bp1 = be1.add(0, 0);
-var bp2 = be1.add(1, 1);
-
-console.log(be1.pick(0.75));
+var signal1 = new BreakpointEnvelope([
+  [0, 0],
+  [1, 1],
+  [2, 1],
+  [4, 0]
+]);
+var signal2 = new BreakpointEnvelope([
+  [1, 0],
+  [3, 1],
+  [5, 0]
+]);
+var result = signal1.add(signal2);
+console.log(result);
+console.log(result.invert(1.5));

@@ -5,6 +5,10 @@
  * @module breakpoint-envelope
  */
 
+function lerp(value1, value2, factor) {
+  return value1*(1-factor)+value2*factor;
+}
+
 /**
  * Breakpoint class
  * @constructor
@@ -25,17 +29,26 @@ function Breakpoint(position, value) {
  * @param {array} breakpoints - Initial breakpoints as arrays: [[0,0],[1,1], ...]
  * @param {array} breakpoints - Initial breakpoints as objects: [{position: 0, value: 0.5}, ...]
  */
-function BreakpointEnvelope(breakpoints) {
+function EnvelopeSignal(breakpoints) {
 	this.breakpoints = [];
   this.defaultValue = 0;
 
   // Initialize initial breakpoints
+  if(breakpoints instanceof Array) {
+    for(var b in breakpoints) {
+      var breakpoint = breakpoints[b];
+      if(breakpoints instanceof Array) {
+        this.addBreakpoint(breakpoint[0], breakpoint[1]);
+      }
+    }
+  }
 }
   /**
    * Picks the value at a certain position on the envelope
    * @param {number} position - Position of breakpoint
+   * @returns {number} Value at picked position
    */
-  BreakpointEnvelope.prototype.pick = function(position) {
+  EnvelopeSignal.prototype.pick = function(position) {
     // Find closest breakpoint on left
     var left = new Breakpoint(-Infinity, this.defaultValue);
     for(var i in this.breakpoints) {
@@ -49,7 +62,7 @@ function BreakpointEnvelope(breakpoints) {
     var right = new Breakpoint(Infinity, this.defaultValue);
     for(var i in this.breakpoints) {
       var breakpoint = this.breakpoints[i];
-      if(breakpoint.position < right.position && breakpoint.position >= position) {
+      if(breakpoint.position < right.position && breakpoint.position > position) {
         right = this.breakpoints[i];
       }
     }
@@ -58,19 +71,21 @@ function BreakpointEnvelope(breakpoints) {
     if(right.position == Infinity) return left.value;
     
     var factor = (position-left.position)/Math.abs(right.position-left.position);
-    return left.value*(1-factor)+right.value*factor;
+
+    return lerp(left.value, right.value, factor);
   }
 
   /**
    * Add a breakpoint
    * @param {number} position - Position of breakpoint
    * @param {number} value - Value of breakpoint
+   * @returns {Breakpoint} Added breakpoint
    */
-	BreakpointEnvelope.prototype.add = function(position, value) {
+	EnvelopeSignal.prototype.addBreakpoint = function(position, value) {
     // If no value is specified add the breakpoint on the current envelope
     if(typeof value == 'undefined') value = this.pick(position);
 
-    if(this.exists(position)) return false;
+    if(this.breakpointExists(position)) return false;
     
     var newBreakpoint = new Breakpoint(position, value);
 
@@ -83,8 +98,9 @@ function BreakpointEnvelope(breakpoints) {
    * Delete a breakpoint
    * @param {number} breakpoint - Index of breakpoint object in breakpoints array
    * @param {Breakpoint} breakpoint - The breakpoint object to delete
+   * @returns {boolean} True if deletion successful
    */
-  BreakpointEnvelope.prototype.delete = function(breakpoint) {
+  EnvelopeSignal.prototype.deleteBreakpoint = function(breakpoint) {
     if(typeof breakpoint == 'number') {
       this.breakpoints.splice(1, breakpoint);      
 
@@ -103,12 +119,101 @@ function BreakpointEnvelope(breakpoints) {
   /**
    * Check if a breakpoint already exists at a particular position
    * @param {number} position - Position of breakpoint
+   * @returns {boolean} True if it exist, false otherwise
    */
-  BreakpointEnvelope.prototype.exists = function(position) {
+  EnvelopeSignal.prototype.breakpointExists = function(position) {
     for(var i in this.breakpoints) {
       var breakpoint = this.breakpoints[i];
       if(breakpoint.position == position) return true;
     }
     return false;
   }
-module.exports = BreakpointEnvelope;
+
+  /**
+   * Sorts the breakpoints by position
+   * @returns {EnvelopeSignal} Sorted
+   */
+  EnvelopeSignal.prototype.sortBreakpoints = function() {
+    this.breakpoints.sort(function(a, b) {
+      return a.position - b.position;
+    });
+
+    return this;
+  }
+
+  /**
+   * Manipulation function to add two envelope signals
+   * @param {number} manipulator A number to add to the envelope signal
+   * @param {EnvelopeSignal} manipulator An envelope signal to add
+   * @returns {EnvelopeSignal} Outcome of addition
+   */
+  EnvelopeSignal.prototype.add = function(manipulator) {
+    var result = new EnvelopeSignal();
+    if(typeof manipulator == 'number') {
+      for(var i in this.breakpoints) {
+        var breakpoint = this.breakpoints[i];
+        result.addBreakpoint(breakpoint.position, breakpoint.value+manipulator);
+      }
+    } else if(manipulator instanceof EnvelopeSignal) {
+       // Breakpoints of this + signal picked from manipulator
+      var thisAdded = new EnvelopeSignal();
+      for(var i in this.breakpoints) {
+        var breakpoint = this.breakpoints[i];
+        result.addBreakpoint(breakpoint.position, breakpoint.value+manipulator.pick(breakpoint.position));
+      }
+
+      // Breakpoints of manipulator + signal picked from this
+      var manipulatorAdded = new EnvelopeSignal();
+      for(var i in manipulator.breakpoints) {
+        var breakpoint = manipulator.breakpoints[i];
+        result.addBreakpoint(breakpoint.position, breakpoint.value+this.pick(breakpoint.position));
+      }
+    }
+
+    return result.sortBreakpoints();
+  }
+
+  /**
+   * Manipulation function to add two envelope signals
+   * @param {number} manipulator A number to muliply the envelope signal by
+   * @param {EnvelopeSignal} manipulator The envelope signal to multiply
+   * @returns {EnvelopeSignal} Outcome of multiplication
+   */
+  EnvelopeSignal.prototype.multiply = function(manipulator) {
+    var result = new EnvelopeSignal();
+    if(typeof manipulator == 'number') {
+      for(var i in this.breakpoints) {
+        var breakpoint = this.breakpoints[i];
+        result.addBreakpoint(breakpoint.position, breakpoint.value * manipulator);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Manipulation function to invert the envelope signal (mirror around horizontal axis)
+   * @param {number} origin Represents the axis to mirror the signal around (default = 0)
+   * @returns {EnvelopeSignal} Inverted envelope signal
+   */
+  EnvelopeSignal.prototype.invert = function(origin) {
+    if(typeof origin == 'number') {
+      return this.subtract(origin).multiply(-1).add(origin);
+    } else {
+      return this.multiply(-1);
+    }
+  }
+
+  /**
+   * Manipulation function to subtract two envelope signals
+   * @param {number} manipulator A number to subtract from the envelope signal
+   * @param {EnvelopeSignal} manipulator The envelope signal to subtract
+   * @returns {EnvelopeSignal} Outcome of subtraction
+   */
+  EnvelopeSignal.prototype.subtract = function(manipulator) {
+    if(typeof manipulator == 'number') {
+      return this.add(-manipulator);
+    } else if(manipulator instanceof EnvelopeSignal) {
+      return this.add(manipulator.invert());
+    }
+  }
+module.exports = EnvelopeSignal;
