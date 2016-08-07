@@ -17,10 +17,10 @@ function lerp(value1, value2, factor) {
  */
 function Breakpoint(position, value) {
   if(typeof position == 'undefined') throw new Error('Parameter position required');
-	if(typeof value == 'undefined') throw new Error('Parameter value required');
+  if(typeof value == 'undefined') throw new Error('Parameter value required');
 
-	this.position = position;
-	this.value = value;
+  this.position = position;
+  this.value = value;
 }
 
 /**
@@ -30,7 +30,7 @@ function Breakpoint(position, value) {
  * @param {array} breakpoints - Initial breakpoints as objects: [{position: 0, value: 0.5}, ...]
  */
 function EnvelopeSignal(breakpoints) {
-	this.breakpoints = [];
+  this.breakpoints = [];
   this.defaultValue = 0;
 
   // Initialize initial breakpoints
@@ -81,7 +81,7 @@ function EnvelopeSignal(breakpoints) {
    * @param {number} value - Value of breakpoint
    * @returns {Breakpoint} Added breakpoint
    */
-	EnvelopeSignal.prototype.addBreakpoint = function(position, value) {
+  EnvelopeSignal.prototype.addBreakpoint = function(position, value) {
     // If no value is specified add the breakpoint on the current envelope
     if(typeof value == 'undefined') value = this.pick(position);
 
@@ -89,10 +89,10 @@ function EnvelopeSignal(breakpoints) {
     
     var newBreakpoint = new Breakpoint(position, value);
 
-		this.breakpoints.push(newBreakpoint);
+    this.breakpoints.push(newBreakpoint);
 
     return newBreakpoint;
-	}
+  }
 
   /**
    * Delete a breakpoint
