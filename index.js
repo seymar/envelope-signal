@@ -2,7 +2,7 @@
 /**
  * Universal signal creation using a breakpoint envelope and manipulation functions.
  * Can be used for gradients, animations, real life signal generation, sequencing.
- * @module breakpoint-envelope
+ * @module envelope-signal
  */
 
 function lerp(value1, value2, factor) {
@@ -24,7 +24,7 @@ function Breakpoint(position, value) {
 }
 
 /**
- * Breakpoint class
+ * Envelope signal class
  * @constructor
  * @param {array} breakpoints - Initial breakpoints as arrays: [[0,0],[1,1], ...]
  * @param {array} breakpoints - Initial breakpoints as objects: [{position: 0, value: 0.5}, ...]
@@ -35,12 +35,11 @@ function EnvelopeSignal(breakpoints) {
 
   // Initialize initial breakpoints
   if(breakpoints instanceof Array) {
-    for(var b in breakpoints) {
-      var breakpoint = breakpoints[b];
+    breakpoints.forEach(function(breakpoint) {
       if(breakpoints instanceof Array) {
         this.addBreakpoint(breakpoint[0], breakpoint[1]);
       }
-    }
+    }, this);
   }
 }
   /**
@@ -51,21 +50,19 @@ function EnvelopeSignal(breakpoints) {
   EnvelopeSignal.prototype.pick = function(position) {
     // Find closest breakpoint on left
     var left = new Breakpoint(-Infinity, this.defaultValue);
-    for(var i in this.breakpoints) {
-      var breakpoint = this.breakpoints[i];
+    this.breakpoints.forEach(function(breakpoint) {
       if(breakpoint.position > left.position && breakpoint.position <= position) {
-        left = this.breakpoints[i];
+        left = breakpoint;
       }
-    }
+    }, this);
 
     // Find closest breakpoint on left
     var right = new Breakpoint(Infinity, this.defaultValue);
-    for(var i in this.breakpoints) {
-      var breakpoint = this.breakpoints[i];
+    this.breakpoints.forEach(function(breakpoint) {
       if(breakpoint.position < right.position && breakpoint.position > position) {
-        right = this.breakpoints[i];
+        right = breakpoint;
       }
-    }
+    }, this);
 
     if(left.position == -Infinity) return right.value;
     if(right.position == Infinity) return left.value;
@@ -123,8 +120,7 @@ function EnvelopeSignal(breakpoints) {
    */
   EnvelopeSignal.prototype.breakpointExists = function(position) {
     for(var i in this.breakpoints) {
-      var breakpoint = this.breakpoints[i];
-      if(breakpoint.position == position) return true;
+      if(this.breakpoints[i] == position) return true;
     }
     return false;
   }
@@ -134,11 +130,9 @@ function EnvelopeSignal(breakpoints) {
    * @returns {EnvelopeSignal} Sorted
    */
   EnvelopeSignal.prototype.sortBreakpoints = function() {
-    this.breakpoints.sort(function(a, b) {
+    return this.breakpoints.sort(function(a, b) {
       return a.position - b.position;
     });
-
-    return this;
   }
 
   /**
@@ -150,27 +144,26 @@ function EnvelopeSignal(breakpoints) {
   EnvelopeSignal.prototype.add = function(manipulator) {
     var result = new EnvelopeSignal();
     if(typeof manipulator == 'number') {
-      for(var i in this.breakpoints) {
-        var breakpoint = this.breakpoints[i];
+      this.breakpoints.forEach(function(breakpoint) {
         result.addBreakpoint(breakpoint.position, breakpoint.value+manipulator);
-      }
+      }, this);
     } else if(manipulator instanceof EnvelopeSignal) {
-       // Breakpoints of this + signal picked from manipulator
+      // Breakpoints of this + signal picked from manipulator
       var thisAdded = new EnvelopeSignal();
-      for(var i in this.breakpoints) {
-        var breakpoint = this.breakpoints[i];
+      this.breakpoints.forEach(function(breakpoint) {
         result.addBreakpoint(breakpoint.position, breakpoint.value+manipulator.pick(breakpoint.position));
-      }
+      }, this);
 
       // Breakpoints of manipulator + signal picked from this
       var manipulatorAdded = new EnvelopeSignal();
-      for(var i in manipulator.breakpoints) {
-        var breakpoint = manipulator.breakpoints[i];
+      manipulator.breakpoints.forEach(function(breakpoint) {
         result.addBreakpoint(breakpoint.position, breakpoint.value+this.pick(breakpoint.position));
-      }
+      }, this);
+
+      result.sortBreakpoints();
     }
 
-    return result.sortBreakpoints();
+    return result;
   }
 
   /**
@@ -182,10 +175,9 @@ function EnvelopeSignal(breakpoints) {
   EnvelopeSignal.prototype.multiply = function(manipulator) {
     var result = new EnvelopeSignal();
     if(typeof manipulator == 'number') {
-      for(var i in this.breakpoints) {
-        var breakpoint = this.breakpoints[i];
+      this.breakpoints.forEach(function(breakpoint) {
         result.addBreakpoint(breakpoint.position, breakpoint.value * manipulator);
-      }
+      }, this);
     }
     return result;
   }
