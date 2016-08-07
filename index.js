@@ -1,13 +1,10 @@
 "use strict";
+var lerp = require('lerp');
 /**
  * Universal signal creation using a breakpoint envelope and manipulation functions.
  * Can be used for gradients, animations, real life signal generation, sequencing.
  * @module envelope-signal
  */
-
-function lerp(value1, value2, factor) {
-  return value1*(1-factor)+value2*factor;
-}
 
 /**
  * Breakpoint class
